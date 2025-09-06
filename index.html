@@ -9,7 +9,10 @@
 <body>
     <div class="game-container">
         <div class="game-header">
-            <h1>贪吃蛇游戏</h1>
+            <div class="header-top">
+                <h1>贪吃蛇游戏</h1>
+                <button id="modeToggle" class="mode-toggle-btn">切换模式</button>
+            </div>
             <div class="score-board">
                 <div class="score">分数: <span id="score">0</span></div>
                 <div class="high-score">最高分: <span id="high-score">0</span></div>
@@ -22,7 +25,7 @@
                 <div class="overlay-content">
                     <h2 id="overlayTitle">贪吃蛇游戏</h2>
                     <p id="overlayMessage">按空格键开始游戏</p>
-                    <div class="controls-info">
+                    <div class="controls-info" id="controlsInfo">
                         <p>使用方向键控制蛇的移动</p>
                         <p>按空格键暂停/继续游戏</p>
                     </div>
@@ -52,12 +55,12 @@
         
         <div class="instructions">
             <h3>游戏说明</h3>
-            <ul>
+            <ul id="instructionsList">
                 <li>使用方向键 ↑↓←→ 控制蛇的移动方向</li>
                 <li>吃到食物可以增长身体并获得分数</li>
                 <li>避免撞到墙壁或自己的身体</li>
-                <li>按空格键可以暂停/继续游戏</li>
-                <li>手机用户可使用下方虚拟按键</li>
+                <li class="pc-instruction">按空格键可以暂停/继续游戏</li>
+                <li class="mobile-instruction" style="display: none;">使用下方虚拟按键控制游戏</li>
             </ul>
         </div>
     </div>

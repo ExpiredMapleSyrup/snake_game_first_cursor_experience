@@ -31,11 +31,52 @@ body {
 }
 
 /* 游戏头部 */
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
 .game-header h1 {
     color: #8B4513;
     font-size: 2.5em;
-    margin-bottom: 20px;
+    margin: 0;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 模式切换按钮 */
+.mode-toggle-btn {
+    background: linear-gradient(145deg, #DDA0DD, #BA55D3);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    min-width: 80px;
+}
+
+.mode-toggle-btn:hover {
+    background: linear-gradient(145deg, #BA55D3, #DDA0DD);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.mode-toggle-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.mode-toggle-btn.mobile-mode {
+    background: linear-gradient(145deg, #FF69B4, #FF1493);
+}
+
+.mode-toggle-btn.mobile-mode:hover {
+    background: linear-gradient(145deg, #FF1493, #FF69B4);
 }
 
 .score-board {
@@ -277,8 +318,19 @@ body {
         padding: 20px;
     }
     
+    .header-top {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
     .game-header h1 {
         font-size: 2em;
+    }
+    
+    .mode-toggle-btn {
+        font-size: 0.8em;
+        padding: 6px 12px;
+        min-width: 70px;
     }
     
     #gameCanvas {

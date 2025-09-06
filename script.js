@@ -12,7 +12,8 @@ let gameState = {
     isPaused: false,
     score: 0,
     highScore: localStorage.getItem('snakeHighScore') || 0,
-    speed: GAME_CONFIG.INITIAL_SPEED
+    speed: GAME_CONFIG.INITIAL_SPEED,
+    hasPlayed: false  // 新增：是否已经玩过游戏
 };
 
 // 蛇的配置
@@ -43,11 +44,15 @@ const overlayMessage = document.getElementById('overlayMessage');
 const startBtn = document.getElementById('startBtn');
 const pauseBtn = document.getElementById('pauseBtn');
 const mobileControls = document.getElementById('mobileControls');
+const modeToggle = document.getElementById('modeToggle');
 
 // 设备检测
-const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-                 window.innerWidth <= 768 || 
-                 ('ontouchstart' in window);
+const deviceIsMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                       window.innerWidth <= 768 || 
+                       ('ontouchstart' in window);
+
+// 当前操作模式（可手动切换）
+let isMobile = deviceIsMobile;
 
 // 初始化游戏
 function initGame() {
@@ -83,6 +88,7 @@ function bindEventListeners() {
     // 按钮事件
     startBtn.addEventListener('click', handleStartButton);
     pauseBtn.addEventListener('click', togglePause);
+    modeToggle.addEventListener('click', toggleMode);
     
     // 移动端控制按钮事件
     bindMobileControls();
@@ -92,12 +98,78 @@ function bindEventListeners() {
 function initMobileControls() {
     if (isMobile) {
         mobileControls.style.display = 'block';
-        // 防止页面滚动
-        document.addEventListener('touchmove', function(e) {
-            e.preventDefault();
-        }, { passive: false });
+        // 只阻止游戏区域的滚动，允许页面其他区域滚动
+        const gameArea = document.querySelector('.game-area');
+        if (gameArea) {
+            gameArea.addEventListener('touchmove', function(e) {
+                e.preventDefault();
+            }, { passive: false });
+        }
     } else {
         mobileControls.style.display = 'none';
+    }
+    
+    // 更新模式切换按钮
+    updateModeToggleButton();
+    
+    // 更新游戏说明文案
+    updateInstructions();
+}
+
+// 切换操作模式
+function toggleMode() {
+    isMobile = !isMobile;
+    initMobileControls();
+    
+    // 更新提示信息
+    if (gameState.isPaused) {
+        showOverlay('游戏暂停', isMobile ? '点击暂停按钮继续游戏' : '按空格键继续游戏');
+    } else if (!gameState.isRunning) {
+        showOverlay('贪吃蛇游戏', isMobile ? '点击开始游戏按钮开始' : '按空格键开始游戏');
+    }
+}
+
+// 更新模式切换按钮
+function updateModeToggleButton() {
+    if (isMobile) {
+        modeToggle.textContent = 'PC模式';
+        modeToggle.classList.add('mobile-mode');
+    } else {
+        modeToggle.textContent = '移动模式';
+        modeToggle.classList.remove('mobile-mode');
+    }
+}
+
+// 更新游戏说明文案
+function updateInstructions() {
+    const pcInstruction = document.querySelector('.pc-instruction');
+    const mobileInstruction = document.querySelector('.mobile-instruction');
+    const controlsInfo = document.getElementById('controlsInfo');
+    
+    if (isMobile) {
+        // 移动模式：显示移动端说明，隐藏PC端说明
+        if (pcInstruction) pcInstruction.style.display = 'none';
+        if (mobileInstruction) mobileInstruction.style.display = 'list-item';
+        
+        // 更新覆盖层中的控制说明
+        if (controlsInfo) {
+            controlsInfo.innerHTML = `
+                <p>使用下方虚拟按键控制蛇的移动</p>
+                <p>点击暂停按钮暂停/继续游戏</p>
+            `;
+        }
+    } else {
+        // PC模式：显示PC端说明，隐藏移动端说明
+        if (pcInstruction) pcInstruction.style.display = 'list-item';
+        if (mobileInstruction) mobileInstruction.style.display = 'none';
+        
+        // 更新覆盖层中的控制说明
+        if (controlsInfo) {
+            controlsInfo.innerHTML = `
+                <p>使用方向键控制蛇的移动</p>
+                <p>按空格键暂停/继续游戏</p>
+            `;
+        }
     }
 }
 
@@ -105,16 +177,28 @@ function initMobileControls() {
 function bindMobileControls() {
     const mobileBtns = document.querySelectorAll('.mobile-btn');
     mobileBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const direction = e.target.getAttribute('data-direction');
-            handleMobileInput(direction);
-        });
+        // 移除之前的事件监听器（避免重复绑定）
+        btn.removeEventListener('click', handleMobileClick);
+        btn.removeEventListener('touchstart', handleMobileTouch);
         
-        // 防止长按
-        btn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-        });
+        // 添加新的事件监听器
+        btn.addEventListener('click', handleMobileClick);
+        btn.addEventListener('touchstart', handleMobileTouch);
     });
+}
+
+// 移动端点击处理
+function handleMobileClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const direction = e.target.getAttribute('data-direction');
+    handleMobileInput(direction);
+}
+
+// 移动端触摸处理
+function handleMobileTouch(e) {
+    e.preventDefault();
+    e.stopPropagation();
 }
 
 // 处理移动端输入
@@ -147,10 +231,12 @@ function handleMobileInput(direction) {
         case 'pause':
             if (gameState.isRunning) {
                 togglePause();
-            } else if (gameState.score === 0) {
-                startGame();
+            } else if (gameState.hasPlayed) {
+                // 游戏结束后重新开始
+                restartFromGameOver();
             } else {
-                restartGame();
+                // 新游戏，开始游戏
+                startGame();
             }
             break;
     }
@@ -204,9 +290,9 @@ function handleStartButton() {
         return;
     }
     
-    if (gameState.score > 0) {
-        // 如果已有分数，说明游戏结束，执行重置
-        restartGame();
+    if (gameState.hasPlayed) {
+        // 如果已经玩过游戏，说明游戏结束，执行重置
+        restartFromGameOver();
     } else {
         // 新游戏，开始游戏
         startGame();
@@ -217,6 +303,7 @@ function handleStartButton() {
 function startGame() {
     gameState.isRunning = true;
     gameState.isPaused = false;
+    gameState.hasPlayed = true;  // 标记已经玩过游戏
     updateStartButton();
     hideOverlay();
     gameLoop();
@@ -236,13 +323,42 @@ function togglePause() {
     }
 }
 
-// 重新开始游戏
+// 从游戏结束状态重新开始
+function restartFromGameOver() {
+    // 重置游戏状态，但保持分数为0（因为这是重新开始新游戏）
+    gameState.isRunning = false;
+    gameState.isPaused = false;
+    gameState.score = 0;  // 重新开始新游戏，分数重置为0
+    gameState.speed = GAME_CONFIG.INITIAL_SPEED;
+    gameState.hasPlayed = false;  // 重置游戏状态，显示"开始游戏"
+    
+    // 重置蛇
+    snake.body = [
+        { x: 10, y: 10 },
+        { x: 9, y: 10 },
+        { x: 8, y: 10 }
+    ];
+    snake.direction = { x: 1, y: 0 };
+    snake.nextDirection = { x: 1, y: 0 };
+    
+    // 生成新食物
+    generateFood();
+    
+    // 更新显示
+    updateScore();
+    updateStartButton();
+    drawGame();
+    showOverlay('贪吃蛇游戏', isMobile ? '点击开始游戏按钮开始' : '按空格键开始游戏');
+}
+
+// 重新开始游戏（完全重置）
 function restartGame() {
     // 重置游戏状态
     gameState.isRunning = false;
     gameState.isPaused = false;
     gameState.score = 0;
     gameState.speed = GAME_CONFIG.INITIAL_SPEED;
+    gameState.hasPlayed = false;  // 重置游戏状态
     
     // 重置蛇
     snake.body = [
@@ -470,8 +586,8 @@ function updateStartButton() {
         startBtn.textContent = '游戏中...';
         startBtn.disabled = true;
         startBtn.classList.remove('reset-state');
-    } else if (gameState.score > 0) {
-        // 游戏结束，显示重置按钮
+    } else if (gameState.hasPlayed) {
+        // 游戏已经玩过（无论得分多少），显示重新开始按钮
         startBtn.textContent = '重新开始';
         startBtn.disabled = false;
         startBtn.classList.add('reset-state');
