@@ -42,6 +42,12 @@ const overlayTitle = document.getElementById('overlayTitle');
 const overlayMessage = document.getElementById('overlayMessage');
 const startBtn = document.getElementById('startBtn');
 const pauseBtn = document.getElementById('pauseBtn');
+const mobileControls = document.getElementById('mobileControls');
+
+// 设备检测
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                 window.innerWidth <= 768 || 
+                 ('ontouchstart' in window);
 
 // 初始化游戏
 function initGame() {
@@ -61,9 +67,12 @@ function initGame() {
     // 绑定事件监听器
     bindEventListeners();
     
+    // 初始化移动端控制
+    initMobileControls();
+    
     // 显示开始界面
     updateStartButton();
-    showOverlay('贪吃蛇游戏', '按空格键开始游戏');
+    showOverlay('贪吃蛇游戏', isMobile ? '点击开始游戏按钮开始' : '按空格键开始游戏');
 }
 
 // 绑定事件监听器
@@ -74,6 +83,77 @@ function bindEventListeners() {
     // 按钮事件
     startBtn.addEventListener('click', handleStartButton);
     pauseBtn.addEventListener('click', togglePause);
+    
+    // 移动端控制按钮事件
+    bindMobileControls();
+}
+
+// 初始化移动端控制
+function initMobileControls() {
+    if (isMobile) {
+        mobileControls.style.display = 'block';
+        // 防止页面滚动
+        document.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+        }, { passive: false });
+    } else {
+        mobileControls.style.display = 'none';
+    }
+}
+
+// 绑定移动端控制
+function bindMobileControls() {
+    const mobileBtns = document.querySelectorAll('.mobile-btn');
+    mobileBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const direction = e.target.getAttribute('data-direction');
+            handleMobileInput(direction);
+        });
+        
+        // 防止长按
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+        });
+    });
+}
+
+// 处理移动端输入
+function handleMobileInput(direction) {
+    if (!gameState.isRunning && direction !== 'pause') {
+        return;
+    }
+    
+    switch (direction) {
+        case 'up':
+            if (snake.direction.y === 0) {
+                snake.nextDirection = { x: 0, y: -1 };
+            }
+            break;
+        case 'down':
+            if (snake.direction.y === 0) {
+                snake.nextDirection = { x: 0, y: 1 };
+            }
+            break;
+        case 'left':
+            if (snake.direction.x === 0) {
+                snake.nextDirection = { x: -1, y: 0 };
+            }
+            break;
+        case 'right':
+            if (snake.direction.x === 0) {
+                snake.nextDirection = { x: 1, y: 0 };
+            }
+            break;
+        case 'pause':
+            if (gameState.isRunning) {
+                togglePause();
+            } else if (gameState.score === 0) {
+                startGame();
+            } else {
+                restartGame();
+            }
+            break;
+    }
 }
 
 // 处理键盘输入
@@ -149,7 +229,7 @@ function togglePause() {
     gameState.isPaused = !gameState.isPaused;
     
     if (gameState.isPaused) {
-        showOverlay('游戏暂停', '按空格键继续游戏');
+        showOverlay('游戏暂停', isMobile ? '点击暂停按钮继续游戏' : '按空格键继续游戏');
     } else {
         hideOverlay();
         gameLoop();
@@ -180,7 +260,7 @@ function restartGame() {
     updateScore();
     updateStartButton();
     drawGame();
-    showOverlay('贪吃蛇游戏', '按空格键开始游戏');
+    showOverlay('贪吃蛇游戏', isMobile ? '点击开始游戏按钮开始' : '按空格键开始游戏');
 }
 
 // 游戏主循环
